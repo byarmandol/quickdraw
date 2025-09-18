@@ -1,0 +1,49 @@
+# Archivos sensibles - NO subir a Git
+.env
+config.php
+
+# Logs
+logs/
+*.log
+
+# Cache
+cache/
+temp/
+
+# API Keys y configuración local
+api-keys.txt
+secrets.txt
+
+# Archivos de base de datos (si los usas en el futuro)
+*.db
+*.sqlite
+*.sql
+
+# Archivos de respaldo
+*.bak
+*.backup
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Archivos temporales
+*~
+*.tmp
+*.swp
+*.swo
+
+# Node modules (si usas herramientas de build)
+node_modules/
+npm-debug.log*
+
+# Archivos de desarrollo
+test.php
+debug.php
+playground.php

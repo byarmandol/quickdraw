@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Draw Español - Google Vision IA</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Juego de dibujo con inteligencia artificial de Google Vision API">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
+    
+    <style>
+        body.modal-open {
+            overflow: hidden;
+        }
+        
+        #drawCanvas {
+            cursor: crosshair;
+            transition: border-color 0.3s ease;
+        }
+        
+        #drawCanvas:hover {
+            border-color: #667eea;
+        }
+        
+        #drawCanvas:focus {
+            outline: 3px solid #4CAF50;
+            outline-offset: 2px;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .drawing-active {
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3) !important;
+            border-color: #4CAF50 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>Quick Draw Español</h1>
+            <p class="subtitle">Dibuja y la IA de Google adivinará qué es</p>
+        </header>
+
+        <div class="game-status">
+            <div class="status-item">
+                <span class="label">Tiempo:</span>
+                <span id="timer" class="value">25</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Palabra:</span>
+                <span id="currentWord" class="value">Presiona Iniciar</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Puntos:</span>
+                <span id="score" class="value">0</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Ronda:</span>
+                <span id="round" class="value">0/5</span>
+            </div>
+        </div>
+
+        <div class="canvas-section">
+            <canvas 
+                id="drawCanvas" 
+                width="450" 
+                height="350"
+                role="img"
+                aria-label="Lienzo para dibujar"
+                tabindex="0">
+                Tu navegador no soporta canvas HTML5.
+            </canvas>
+            
+            <div class="controls">
+                <button 
+                    id="startBtn" 
+                    class="btn btn-primary" 
+                    onclick="startGame()"
+                    aria-label="Iniciar nuevo juego">
+                    Iniciar Juego
+                </button>
+                <button 
+                    id="clearBtn" 
+                    class="btn btn-secondary" 
+                    onclick="clearCanvas()"
+                    aria-label="Limpiar el lienzo">
+                    Limpiar
+                </button>
+                <button 
+                    id="skipBtn" 
+                    class="btn btn-warning" 
+                    onclick="skipWord()" 
+                    disabled
+                    aria-label="Saltar palabra actual">
+                    Saltar
+                </button>
+                <button 
+                    id="stopBtn" 
+                    class="btn btn-danger" 
+                    onclick="stopGame()" 
+                    disabled
+                    aria-label="Detener juego">
+                    Detener
+                </button>
+            </div>
+        </div>
+
+        <div class="predictions-section">
+            <h3>Predicciones de Google Vision IA:</h3>
+            <div id="predictionsList" class="predictions-list">
+                <div class="prediction-placeholder">
+                    Dibuja algo para ver las predicciones de la IA en español...
+                </div>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h4>Cómo Jugar:</h4>
+            <ul>
+                <li><strong>Objetivo:</strong> Dibuja la palabra mostrada para que la IA la reconozca</li>
+                <li><strong>Tiempo:</strong> Tienes 25 segundos por palabra</li>
+                <li><strong>IA:</strong> Google Vision API analizará tu dibujo en tiempo real</li>
+                <li><strong>Puntos:</strong> Ganas puntos según la confianza de la IA y tiempo restante</li>
+                <li><strong>Rondas:</strong> 5 palabras por partida</li>
+                <li><strong>Consejo:</strong> Dibuja formas claras y reconocibles</li>
+                <li><strong>Controles:</strong> Usa el mouse o toca la pantalla para dibujar</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9em; color: #6c757d;">
+            <strong>Atajos de teclado:</strong>
+            <span style="margin-left: 10px;">Escape = Cerrar ventanas</span>
+            <span style="margin-left: 15px;">Espacio = Limpiar canvas</span>
+        </div>
+    </div>
+
+    <script src="game-vision.js"></script>
+    
+    <script>
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('gameEndModal')) {
+                return;
+            }
+            
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    if (typeof clearCanvas === 'function') {
+                        clearCanvas();
+                    }
+                    break;
+                case 'Enter':
+                    if (!gameActive && typeof startGame === 'function') {
+                        startGame();
+                    }
+                    break;
+            }
+        });
+
+        let drawingActive = false;
+        
+        window.addEventListener('load', function() {
+            const canvas = document.getElementById('drawCanvas');
+            if (canvas) {
+                canvas.addEventListener('mousedown', function() {
+                    drawingActive = true;
+                    canvas.classList.add('drawing-active');
+                });
+                
+                canvas.addEventListener('mouseup', function() {
+                    drawingActive = false;
+                    canvas.classList.remove('drawing-active');
+                });
+                
+                canvas.addEventListener('mouseleave', function() {
+                    if (drawingActive) {
+                        canvas.classList.remove('drawing-active');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
