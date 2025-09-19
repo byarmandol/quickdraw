@@ -18,6 +18,39 @@ let gameState = {
     apiActive: false
 };
 
+// Diccionario mejorado para reconocimiento
+const wordMappings = {
+    'casa': ['house', 'home', 'residence', 'dwelling', 'building', 'residential', 'shelter', 'abode'],
+    'gato': ['cat', 'feline', 'kitty', 'kitten', 'pet cat', 'domestic cat', 'house cat'],
+    'perro': ['dog', 'canine', 'puppy', 'hound', 'pet dog', 'domestic dog', 'mutt'],
+    'pájaro': ['bird', 'avian', 'fowl', 'feathered', 'flying bird', 'songbird'],
+    'pez': ['fish', 'aquatic', 'marine life', 'seafood', 'swimming fish'],
+    'caballo': ['horse', 'equine', 'stallion', 'mare', 'pony', 'foal'],
+    'vaca': ['cow', 'cattle', 'bovine', 'bull', 'calf', 'livestock'],
+    'árbol': ['tree', 'plant', 'vegetation', 'forest', 'trunk', 'branches', 'foliage'],
+    'flor': ['flower', 'bloom', 'blossom', 'petal', 'plant', 'rose', 'tulip', 'daisy'],
+    'coche': ['car', 'vehicle', 'automobile', 'auto', 'sedan', 'motor vehicle', 'transportation'],
+    'avión': ['plane', 'airplane', 'aircraft', 'jet', 'flying', 'aviation'],
+    'sol': ['sun', 'solar', 'sunshine', 'bright', 'star', 'daylight'],
+    'luna': ['moon', 'lunar', 'night', 'crescent', 'satellite'],
+    'estrella': ['star', 'celestial', 'night sky', 'stellar', 'twinkle'],
+    'círculo': ['circle', 'round', 'circular', 'ring', 'oval'],
+    'cuadrado': ['square', 'rectangle', 'box', 'quadrilateral'],
+    'triángulo': ['triangle', 'triangular', 'three sides'],
+    'corazón': ['heart', 'love', 'romantic', 'cardiac', 'valentine'],
+    'cara': ['face', 'head', 'facial', 'visage', 'countenance'],
+    'mano': ['hand', 'palm', 'fingers', 'grip', 'grasp']
+};
+
+// Categorías para reconocimiento inteligente  
+const categories = {
+    'animal': ['gato', 'perro', 'pájaro', 'pez', 'caballo', 'vaca'],
+    'transporte': ['coche', 'avión'],
+    'naturaleza': ['árbol', 'flor', 'sol', 'luna', 'estrella'],
+    'formas': ['círculo', 'cuadrado', 'triángulo'],
+    'cuerpo': ['cara', 'mano']
+};
+
 function initGame() {
     console.log('Iniciando juego...');
     
@@ -54,7 +87,7 @@ function initGame() {
     return true;
 }
 
-// Multiple initialization attempts
+// Inicialización múltiple para asegurar que funcione
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(initGame, 200);
@@ -193,6 +226,7 @@ function showGameEndModal(finalScore, accuracy, correct, total) {
         </div>
     `;
     
+    // Estilos del modal
     const modalStyles = `
         <style id="modalStyles">
             #gameEndModal {
@@ -502,31 +536,109 @@ async function analyzeDoodle() {
     }
 }
 
+// Función mejorada de coincidencias
 function checkMatch(predictions) {
     if (!gameActive || !predictions) return;
     
     const target = currentWord.toLowerCase();
+    let bestMatch = null;
+    let bestPoints = 0;
+    let matchType = '';
     
     for (const pred of predictions) {
         const label = pred.label.toLowerCase();
+        const original = pred.original ? pred.original.toLowerCase() : '';
+        let points = 0;
+        let type = '';
         
-        if (label === target || label.includes(target) || target.includes(label)) {
-            const points = Math.max(10, Math.round(pred.confidence / 5) + timeLeft);
-            score += points;
-            gameState.correctGuesses++;
-            
-            console.log(`Coincidencia encontrada: ${pred.label} (+${points} puntos)`);
-            showMessage(`¡Correcto! "${pred.label}" (+${points} puntos)`, 'success');
-            
-            clearInterval(gameTimer);
-            
-            if (currentRound >= totalRounds) {
-                setTimeout(endGame, 2500);
-            } else {
-                setTimeout(nextRound, 2500);
-            }
-            return;
+        // Coincidencia exacta
+        if (label === target) {
+            points = Math.max(50, Math.round(pred.confidence / 2) + timeLeft + 20);
+            type = 'exact';
         }
+        // Buscar en sinónimos 
+        else if (wordMappings[target]) {
+            const synonyms = wordMappings[target];
+            for (const synonym of synonyms) {
+                if (label.includes(synonym.toLowerCase()) || 
+                    original.includes(synonym.toLowerCase()) ||
+                    synonym.toLowerCase().includes(label)) {
+                    points = Math.max(40, Math.round(pred.confidence / 3) + timeLeft + 15);
+                    type = 'synonym';
+                    break;
+                }
+            }
+        }
+        
+        // Buscar en categorías
+        if (points === 0) {
+            for (const [category, items] of Object.entries(categories)) {
+                if (items.includes(target)) {
+                    for (const item of items) {
+                        if (wordMappings[item]) {
+                            const itemSynonyms = wordMappings[item];
+                            for (const synonym of itemSynonyms) {
+                                if (label.includes(synonym.toLowerCase()) || 
+                                    original.includes(synonym.toLowerCase())) {
+                                    points = Math.max(30, Math.round(pred.confidence / 4) + timeLeft + 10);
+                                    type = 'category';
+                                    break;
+                                }
+                            }
+                        }
+                        if (points > 0) break;
+                    }
+                }
+                if (points > 0) break;
+            }
+        }
+        
+        // Coincidencia parcial
+        if (points === 0 && (label.includes(target) || target.includes(label))) {
+            points = Math.max(20, Math.round(pred.confidence / 5) + timeLeft + 5);
+            type = 'partial';
+        }
+        
+        if (points > bestPoints) {
+            bestMatch = pred;
+            bestPoints = points;
+            matchType = type;
+        }
+    }
+    
+    if (bestMatch && bestPoints > 0) {
+        score += bestPoints;
+        gameState.correctGuesses++;
+        
+        let message = '';
+        switch(matchType) {
+            case 'exact':
+                message = `¡Perfecto! "${bestMatch.label}"`;
+                break;
+            case 'synonym':
+                message = `¡Correcto! "${bestMatch.label}" es similar a "${currentWord}"`;
+                break;
+            case 'category':
+                message = `¡Bien! "${bestMatch.label}" está relacionado con "${currentWord}"`;
+                break;
+            case 'partial':
+                message = `¡Cerca! "${bestMatch.label}" se parece a "${currentWord}"`;
+                break;
+        }
+        
+        const pointsMsg = ` (+${bestPoints} puntos)`;
+        
+        console.log(`Coincidencia encontrada: ${bestMatch.label} (+${bestPoints} puntos)`);
+        showMessage(`${message}${pointsMsg}`, 'success');
+        
+        clearInterval(gameTimer);
+        
+        if (currentRound >= totalRounds) {
+            setTimeout(endGame, 2500);
+        } else {
+            setTimeout(nextRound, 2500);
+        }
+        return;
     }
 }
 
@@ -623,7 +735,7 @@ function showMessage(message, type = 'info') {
     }, 4000);
 }
 
-// Close modal with Escape key
+// Cerrar modal con Escape
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         const modal = document.getElementById('gameEndModal');
@@ -631,4 +743,4 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-console.log('Juego Quick Draw cargado');
+console.log('Juego Quick Draw cargado2');
