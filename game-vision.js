@@ -743,4 +743,4 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-console.log('Juego Quick Draw cargado2');
+console.log('Juego Quick Draw cargado');
